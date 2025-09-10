@@ -263,7 +263,9 @@ app.post('/create-checkout-form', checkIyzicoConfig, (req, res) => {
             currency: req.body.currency || Iyzipay.CURRENCY.TRY,
             basketId: req.body.basketId,
             paymentGroup: req.body.paymentGroup || Iyzipay.PAYMENT_GROUP.PRODUCT,
-            callbackUrl: req.body.callbackUrl || 'https://your-app-domain.com/payment-result',
+            // ÖNEMLİ: callbackUrl mutlaka HTTPS ve sizin kontrolünüzde bir domain olmalı.
+            // Firebase Hosting kullanıyorsanız: https://<PROJECT_ID>.web.app/payment-result
+            callbackUrl: req.body.callbackUrl || 'https://myproject-a52ae.web.app/payment-result',
             enabledInstallments: [1, 2, 3, 6, 9, 12],
             buyer: req.body.buyer,
             shippingAddress: req.body.shippingAddress,
@@ -393,6 +395,53 @@ app.post('/complete-3ds', checkIyzicoConfig, (req, res) => {
             status: 'error',
             message: 'İstek işlenirken beklenmedik bir sunucu hatası oluştu.',
             errorDetails: error.message
+        });
+    }
+});
+
+// Checkout Form sonucu (CF-Retrieve) sadece backend tarafından çağrılır
+app.post('/retrieve-checkout-form', checkIyzicoConfig, (req, res) => {
+    try {
+        console.log('====== CHECKOUT FORM RETRIEVE BAŞLANGICI ======');
+        const { token, conversationId } = req.body || {};
+
+        if (!token) {
+            console.error('[ERROR] Retrieve için token eksik');
+            return res.status(400).send({
+                status: 'error',
+                errorCode: 'TOKEN_MISSING',
+                errorMessage: 'token zorunludur'
+            });
+        }
+
+        const request = {
+            locale: Iyzipay.LOCALE.TR,
+            conversationId: conversationId || `conv-${Date.now()}`,
+            token
+        };
+
+        console.log('İyzipay checkoutForm.retrieve isteği gönderiliyor:', JSON.stringify(request));
+
+        iyzipay.checkoutForm.retrieve(request, (err, result) => {
+            console.log('====== CHECKOUT FORM RETRIEVE YANITI ======');
+            if (err) {
+                console.error('[ERROR] Retrieve Hatası:', JSON.stringify(err));
+                return res.status(err.status || 400).send({
+                    status: 'error',
+                    errorCode: err.errorCode,
+                    errorMessage: err.errorMessage,
+                    raw: err
+                });
+            }
+            console.log('[SUCCESS] Retrieve sonucu:', JSON.stringify(result));
+            res.status(200).send(result);
+        });
+    } catch (error) {
+        console.error('[FATAL] Retrieve sırasında hata:', error.message);
+        res.status(500).send({
+            status: 'error',
+            errorCode: 'RETRIEVE_EXCEPTION',
+            errorMessage: error.message
         });
     }
 });

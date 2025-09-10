@@ -4,14 +4,50 @@ import '../models/cart.dart';
 import '../models/payment_card.dart';
 import '../models/iyzipay/iyzipay_models.dart';
 import '../models/iyzipay/iyzipay_address.dart';
+import '../models/checkout_response.dart';
 import '../utils/logger.dart';
 
 class FirebasePaymentService {
   // Firebase Cloud Functions endpoint
   final String _baseUrl = 'https://paymentapi-4tbpbi4ulq-uc.a.run.app';
   
+  // Checkout form sonucunu doğrulama (CF-Retrieve)
+  Future<Map<String, dynamic>> retrieveCheckoutForm(String token, {String? conversationId}) async {
+    try {
+      Logger.debug('Checkout form retrieve başlatılıyor. Token: $token');
+      final request = {
+        'token': token,
+        if (conversationId != null) 'conversationId': conversationId,
+      };
+      final response = await http.post(
+        Uri.parse('$_baseUrl/retrieve-checkout-form'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(request),
+      );
+      Logger.debug('Retrieve HTTP Status: ${response.statusCode}');
+      Logger.debug('Retrieve Body: ${response.body}');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {
+        'status': 'error',
+        'errorMessage': 'HTTP ${response.statusCode}',
+        'raw': response.body
+      };
+    } catch (e) {
+      Logger.error('Checkout form retrieve hatası: $e');
+      return {
+        'status': 'error',
+        'errorMessage': e.toString()
+      };
+    }
+  }
+  
   // Checkout Form için token alma
-  Future<String> getCheckoutFormToken({
+  Future<CheckoutResponse> getCheckoutFormToken({
     required String userId,
     required List<CartItem> items,
     required double totalAmount,
@@ -37,7 +73,8 @@ class FirebasePaymentService {
         'shippingAddress': _formatAddress(shippingAddress),
         'billingAddress': _formatAddress(billingAddress),
         'basketItems': _createBasketItems(items),
-        'callbackUrl': 'https://your-app-domain.com/payment-result', // Bu URL'i kendi domain'inize göre değiştirin
+  // ÖNEMLİ: Cloud Functions backend ile eşleşen HTTPS callback URL
+  'callbackUrl': 'https://myproject-a52ae.web.app/payment-result',
       };
 
       Logger.debug('Firebase Functions endpoint: $_baseUrl/create-checkout-form');
@@ -66,6 +103,8 @@ class FirebasePaymentService {
         Logger.debug('Response status: ${responseData['status']}');
         Logger.debug('Error message: ${responseData['errorMessage']}');
         Logger.debug('Error code: ${responseData['errorCode']}');
+        Logger.debug('Token: ${responseData['token']}');
+        Logger.debug('PaymentPageUrl: ${responseData['paymentPageUrl']}');
         
         if (responseData['checkoutFormContent'] != null) {
           final content = responseData['checkoutFormContent'] as String;
@@ -84,17 +123,29 @@ class FirebasePaymentService {
         Logger.debug('====== ANALİZ SONU ======');
         
         if (responseData['status'] == 'success') {
-          return responseData['checkoutFormContent'];
+          return CheckoutResponse.fromJson(responseData);
         } else {
-          throw Exception(responseData['errorMessage'] ?? 'Checkout form oluşturulamadı');
+          return CheckoutResponse(
+            checkoutFormContent: '',
+            isSuccess: false,
+            errorMessage: responseData['errorMessage'] ?? 'Checkout form oluşturulamadı',
+          );
         }
       } else {
         Logger.error('HTTP hatası: ${response.statusCode} - ${response.body}');
-        throw Exception('HTTP hatası: ${response.statusCode} - ${response.body}');
+        return CheckoutResponse(
+          checkoutFormContent: '',
+          isSuccess: false,
+          errorMessage: 'HTTP hatası: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       Logger.error('Checkout form token alma hatası: $e');
-      rethrow;
+      return CheckoutResponse(
+        checkoutFormContent: '',
+        isSuccess: false,
+        errorMessage: e.toString(),
+      );
     }
   }
 

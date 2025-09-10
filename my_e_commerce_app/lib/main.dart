@@ -10,9 +10,14 @@ import 'screens/test_payment_debug_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase zaten initialize edilmiş olabilir
+    debugPrint('Firebase already initialized: $e');
+  }
   runApp(const MyApp());
 }
 
@@ -102,8 +107,15 @@ class MyHomePage extends StatelessWidget {
           return ListView(
             children: snapshot.data!.docs.map((DocumentSnapshot document) {
               Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+              
+              // URL'i temizle - çift tırnak varsa kaldır
+              String imageUrl = data['imageURL'] ?? '';
+              if (imageUrl.startsWith('"') && imageUrl.endsWith('"')) {
+                imageUrl = imageUrl.substring(1, imageUrl.length - 1);
+              }
+              
               return ListTile(
-                leading: Image.network(data['imageURL'], width: 50, height: 50, fit: BoxFit.cover),
+                leading: Image.network(imageUrl, width: 50, height: 50, fit: BoxFit.cover),
                 title: Text(data['name']),
                 subtitle: Text('Fiyat: ${data['price']} TL'),
                 trailing: IconButton(
@@ -113,7 +125,7 @@ class MyHomePage extends StatelessWidget {
                       productId: document.id,
                       name: data['name'],
                       price: data['price'].toDouble(),
-                      imageURL: data['imageURL'],
+                      imageURL: imageUrl, // Temizlenmiş URL'i kullan
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

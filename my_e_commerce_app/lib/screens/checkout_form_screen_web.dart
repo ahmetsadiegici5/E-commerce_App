@@ -6,19 +6,19 @@ import 'dart:html' as html if (dart.library.io) 'dart:io';
 import '../services/mobile_payment_service.dart';
 import '../models/checkout_response.dart';
 
-class CheckoutFormScreen extends StatefulWidget {
+class CheckoutFormScreenWeb extends StatefulWidget {
   final String checkoutFormUrl;
 
-  const CheckoutFormScreen({
+  const CheckoutFormScreenWeb({
     super.key,
     required this.checkoutFormUrl,
   });
 
   @override
-  State<CheckoutFormScreen> createState() => _CheckoutFormScreenState();
+  State<CheckoutFormScreenWeb> createState() => _CheckoutFormScreenWebState();
 }
 
-class _CheckoutFormScreenState extends State<CheckoutFormScreen> {
+class _CheckoutFormScreenWebState extends State<CheckoutFormScreenWeb> {
   bool _isLoading = true;
 
   @override

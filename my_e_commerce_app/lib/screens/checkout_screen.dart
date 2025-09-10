@@ -6,7 +6,7 @@ import '../services/firebase_payment_service.dart';
 import '../models/iyzipay/iyzipay_address.dart';
 import '../widgets/test_card_info.dart';
 import './address_form_screen.dart';
-import './checkout_form_screen.dart';
+import './checkout_form_screen_mobile.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -231,7 +231,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final paymentService = FirebasePaymentService();
       
       // Checkout form için token al
-      final checkoutFormContent = await paymentService.getCheckoutFormToken(
+      final checkoutResponse = await paymentService.getCheckoutFormToken(
         userId: 'test_user', // Gerçek uygulamada kullanıcı ID'si buraya gelecek
         items: cart.items,
         totalAmount: cart.totalAmount,
@@ -239,13 +239,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         shippingAddress: _createIyzipayAddress(_selectedAddress!),
       );
 
+      if (!checkoutResponse.isSuccess) {
+        throw Exception(checkoutResponse.errorMessage ?? 'Checkout form oluşturulamadı');
+      }
+
       if (!mounted) return;
 
       // Checkout form ekranını aç
       final result = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
-          builder: (context) => CheckoutFormScreen(
-            checkoutFormUrl: checkoutFormContent,
+          builder: (context) => CheckoutFormScreenMobile(
+            checkoutResponse: checkoutResponse,
           ),
         ),
       );
@@ -267,8 +271,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      
+      String errorMessage = 'Bir hata oluştu: $e';
+      if (e.toString().contains('test modunda')) {
+        errorMessage = 'Ödeme servisi şu anda test modunda çalışıyor. Gerçek ödeme yapılamıyor.';
+      } else if (e.toString().contains('Ödeme sayfası açılamadı')) {
+        errorMessage = 'Ödeme sayfası açılamadı. Lütfen internet bağlantınızı kontrol edin.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bir hata oluştu: $e')),
+        SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.orange,
+        ),
       );
     } finally {
       if (mounted) {

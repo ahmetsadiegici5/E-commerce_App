@@ -6,6 +6,7 @@ import '../models/payment_card.dart';
 import '../models/iyzipay/iyzipay_models.dart';
 import '../models/iyzipay/iyzipay_address.dart';
 import '../utils/logger.dart';
+import 'package:flutter/foundation.dart';
 
 class PaymentService {
   // Güvenli API bilgileri ve ödeme ayarları
@@ -180,7 +181,7 @@ class PaymentService {
           'currency': Currency.tryy.value(),
           'installment': 1, // Tamsayı olarak sabit değer
           'basketId': 'B$timestamp',
-          'paymentChannel': PaymentChannel.web.value(),
+          'paymentChannel': kIsWeb ? PaymentChannel.web.value() : PaymentChannel.mobile.value(),
           'paymentGroup': PaymentGroup.product.value(),
           'paymentCard': {
             'cardHolderName': card.cardHolderName,
@@ -252,10 +253,17 @@ class PaymentService {
         }
 
         if (payment.status == 'success') {
+          if (!kIsWeb) {
+            // Mobil platformda, ödeme URL'sini mobil ödeme servisine yönlendir
+            // Not: Context gerekli olduğu için bu kısım checkout screen'den çağrılmalı
+            Logger.debug('Mobil ödeme için paymentPageUrl: ${responseData['paymentPageUrl']}');
+          }
+          
           return PaymentResult(
             success: true,
             transactionId: payment.paymentId,
-            message: 'Ödeme başarıyla tamamlandı'
+            message: 'Ödeme başarıyla tamamlandı',
+            paymentUrl: responseData['paymentPageUrl']
           );
         } else {
           return PaymentResult(
@@ -318,10 +326,12 @@ class PaymentResult {
   final bool success;
   final String? transactionId;
   final String message;
+  final String? paymentUrl;
 
   PaymentResult({
     required this.success,
     this.transactionId,
     required this.message,
+    this.paymentUrl,
   });
 }
