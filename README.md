@@ -1,48 +1,69 @@
-# İyzico Ödeme Entegrasyonlu E-Ticaret Uygulaması
+# E-Ticaret Uygulaması
 
-Bu Flutter projesi, İyzico ödeme altyapısı ile entegre edilmiş tam fonksiyonel bir e-ticaret uygulamasıdır.
+Flutter ile geliştirilmiş, İyzico ödeme entegrasyonuna sahip bir e-ticaret uygulaması. Ürünler Firestore'dan listelenir, sepete eklenir ve ödeme İyzico'nun ödeme formu üzerinden alınır.
 
 ## Özellikler
 
-- Flutter Web üzerinde çalışan modern arayüz
-- Firebase Functions ile backend entegrasyonu
-- İyzico ödeme API entegrasyonu
-- Adres yönetimi
-- Alışveriş sepeti sistemi
-- Otomatik ödeme sonucu algılama
+- Firestore'dan canlı ürün listesi
+- Sepet yönetimi (ekleme, adet azaltma, geri alma)
+- Adres seçimi ve yeni adres ekleme
+- İyzico Checkout Form ile ödeme (taksit seçenekleri, 3D Secure)
+- Ödeme sonucunun uygulama içinde gösterilmesi
 
-## İyzico Test Kartları
+## Ödeme akışı
 
-Sandbox ortamında test işlemleri için aşağıdaki test kartları kullanılabilir:
+İyzico anahtarları uygulamada değil, Firebase Cloud Functions üzerinde çalışan bir Express API'de tutulur.
 
-| Kart Numarası         | Son Kullanma | CVV | 3D Secure | Açıklama                       |
-|-----------------------|--------------|-----|-----------|--------------------------------|
-| 5528790000000008      | 12/30        | 123 | Başarılı  | Genel başarılı ödeme           |
-| 4603450000000000      | 12/30        | 123 | Başarılı  | Başarılı AMEX ödeme            |
-| 4729150000000005      | 12/30        | 123 | Başarılı  | Başarılı VISA ödeme            |
-| 4987490000000002      | 12/30        | 123 | Başarılı  | Başarılı VISA ödeme            |
-| 5311570000000005      | 12/30        | 123 | Başarılı  | Başarılı MASTERCARD ödeme      |
-| 5170410000000004      | 12/30        | 123 | Başarısız | İşlem onaylama hatası          |
-| 4766620000000001      | 12/30        | 123 | Başarısız | İşlem onaylama hatası          |
-| 4987490000000044      | 12/30        | 123 | Başarılı  | Yetersiz bakiye                |
-| 5528790000000008      | 12/30        | 124 | Başarılı  | CVC hatalı                     |
-| 5528790000000008      | 11/30        | 123 | Başarılı  | Son kullanma tarihi hatalı     |
-| 4129090000000000      | 12/30        | 123 | Başarılı  | Kart sahibi bilgisi tanımsız   |
-| 4159560000000008      | 12/30        | 123 | Başarılı  | Desteklenmeyen kart            |
+1. Uygulama sepetteki ürünlerin sadece id ve adet bilgisini API'ye gönderir.
+2. API ürün fiyatlarını Firestore'dan okuyarak toplam tutarı kendisi hesaplar. Böylece istemci tarafında fiyat değiştirilemez.
+3. İyzico'dan alınan ödeme sayfası uygulama içinde WebView ile açılır.
+4. Ödeme tamamlanınca sonuç token ile API üzerinden sorgulanır ve kullanıcıya gösterilir.
 
-## Sandbox Davranışı Hakkında Not
+Kart bilgileri uygulamaya veya sunucuya hiç gelmez; doğrudan İyzico'nun sayfasında girilir.
 
-İyzico sandbox ortamında, test kartlarında hata durumları için belirtilmiş olsa bile işlemler genelde "başarılı" olarak görünür. Gerçek hata durumunu yakalamak için `status` yanında `errorCode` ve `errorMessage` alanlarını da kontrol etmeniz gerekir.
+## Kullanılan teknolojiler
+
+- **Mobil / Web:** Flutter, Dart, Provider
+- **Backend:** Firebase Cloud Functions, Node.js, Express
+- **Veritabanı:** Cloud Firestore
+- **Ödeme:** İyzico
+- **Test:** flutter_test, Node test runner, GitHub Actions
+
+## Proje yapısı
+
+```
+my_e_commerce_app/
+├── lib/
+│   ├── models/      # Ürün, sepet, adres modelleri
+│   ├── screens/     # Sepet, ödeme, adres ve sonuç ekranları
+│   ├── services/    # Ödeme API istemcisi
+│   └── widgets/
+├── functions/       # Ödeme API'si (Express + İyzico)
+└── test/
+```
 
 ## Kurulum
 
-1. Bu projeyi klonlayın
-2. İçine Flutter paketlerini yükleyin: `flutter pub get`
-3. Firebase Functions klasörüne geçin ve bağımlılıkları yükleyin: `cd functions && npm install`
-4. İyzico API anahtarlarınızı Firebase Functions içindeki ilgili dosyalara ekleyin
-5. Firebase Functions'ı dağıtın: `firebase deploy --only functions`
-6. Uygulamayı çalıştırın: `flutter run -d chrome`
+Gereksinimler: Flutter 3.x, Node.js 20, Firebase CLI ve bir İyzico sandbox hesabı.
 
-## Geliştirme
+```bash
+cd my_e_commerce_app
+flutter pub get
 
-Bu proje Flutter 3.x ile geliştirilmiş olup, Firebase ve İyzico servislerini kullanmaktadır. Geliştirme yapmak için Firebase ve İyzico hesaplarına ihtiyacınız olacaktır.
+cd functions
+npm install
+cp .env.example .env   # İyzico sandbox anahtarları ve callback adresi
+firebase deploy --only functions
+cd ..
+
+flutter run -d chrome --dart-define=PAYMENT_API_URL=<functions adresi>
+```
+
+Testler:
+
+```bash
+flutter test
+cd functions && npm test
+```
+
+Sandbox ortamında `5528790000000008` numaralı test kartı (12/30, CVV 123) ile ödeme denenebilir.

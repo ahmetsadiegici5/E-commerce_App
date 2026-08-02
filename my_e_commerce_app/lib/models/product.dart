@@ -19,17 +19,25 @@ class Product {
     required this.tags,
   });
 
-  factory Product.fromMap(Map<String, dynamic> map) {
+  factory Product.fromMap(Map<String, dynamic> map, {String? id}) {
     return Product(
-      id: map['id'] ?? '',
+      id: id ?? map['id'] ?? '',
       name: map['name'] ?? '',
       description: map['description'] ?? '',
-      price: map['price']?.toDouble() ?? 0.0,
-      imageURL: map['imageURL'] ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      imageURL: _cleanUrl(map['imageURL'] ?? ''),
       category: map['category'] ?? '',
-      stock: map['stock']?.toInt() ?? 0,
+      stock: (map['stock'] as num?)?.toInt() ?? 0,
       tags: List<String>.from(map['tags'] ?? []),
     );
+  }
+
+  // Bazı kayıtlarda URL tırnak içinde saklanmış
+  static String _cleanUrl(String url) {
+    if (url.length > 1 && url.startsWith('"') && url.endsWith('"')) {
+      return url.substring(1, url.length - 1);
+    }
+    return url;
   }
 
   Map<String, dynamic> toMap() {

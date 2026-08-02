@@ -13,11 +13,17 @@ class CheckoutResponse {
     this.errorMessage,
   });
 
+  factory CheckoutResponse.failure(String message) => CheckoutResponse(
+        checkoutFormContent: '',
+        isSuccess: false,
+        errorMessage: message,
+      );
+
   factory CheckoutResponse.fromJson(Map<String, dynamic> json) {
     return CheckoutResponse(
       checkoutFormContent: json['checkoutFormContent'] ?? '',
       token: json['token'],
-      paymentPageUrl: json['paymentPageUrl'],  // Bu satır doğru
+      paymentPageUrl: json['paymentPageUrl'],
       isSuccess: json['status'] == 'success',
       errorMessage: json['errorMessage'],
     );

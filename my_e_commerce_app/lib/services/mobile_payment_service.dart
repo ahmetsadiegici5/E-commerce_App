@@ -38,18 +38,6 @@ class MobilePaymentService {
       rethrow;
     }
   }
-
-  static Future<void> handlePaymentResult(Uri uri) async {
-    // İyzico'dan gelen ödeme sonucunu işle
-    final status = uri.queryParameters['status'];
-    final paymentId = uri.queryParameters['paymentId'];
-    
-    Logger.debug('Ödeme sonucu alındı:');
-    Logger.debug('Status: $status');
-    Logger.debug('Payment ID: $paymentId');
-    
-    // TODO: Ödeme sonucuna göre işlem yap
-  }
 }
 
 class _PaymentWebViewPage extends StatefulWidget {

@@ -230,13 +230,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final paymentService = FirebasePaymentService();
       
-      // Checkout form için token al
-      final checkoutResponse = await paymentService.getCheckoutFormToken(
-        userId: 'test_user', // Gerçek uygulamada kullanıcı ID'si buraya gelecek
+      final checkoutResponse = await paymentService.createCheckoutForm(
         items: cart.items,
-        totalAmount: cart.totalAmount,
-        billingAddress: _createIyzipayAddress(_selectedAddress!),
-        shippingAddress: _createIyzipayAddress(_selectedAddress!),
+        address: _createIyzipayAddress(_selectedAddress!),
       );
 
       if (!checkoutResponse.isSuccess) {
